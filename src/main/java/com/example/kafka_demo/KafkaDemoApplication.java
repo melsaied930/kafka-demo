@@ -8,8 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@RestController
 @SpringBootApplication
+@RestController
 public class KafkaDemoApplication {
 
     public static void main(String[] args) {
@@ -21,7 +21,7 @@ public class KafkaDemoApplication {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body("server up 0.2!");
+                .body("server up 0.1!");
     }
 
 }

@@ -1,1 +1,86 @@
-services: {}
+# Docker Compose configuration for Apache Kafka (KRaft mode) with Kafka UI
+# Version: 3.7.0 (Bitnami legacy image)
+
+networks:
+  # Dedicated network for service communication
+  kafka-net:
+    name: kafka-net
+
+services:
+  # Apache Kafka broker in KRaft mode (no ZooKeeper)
+  kafka:
+    image: bitnamilegacy/kafka:3.7.0
+    container_name: kafka-kraft
+    networks:
+      - kafka-net
+
+    # Port mappings:
+    # - 9092: Internal listener (used by other containers, e.g., kafka-ui)
+    # - 9093: Controller listener (KRaft internal communication)
+    # - 9094: External listener (for host machine access)
+    ports:
+      - "9092:9092"   # Internal listener – not exposed to host
+      - "9093:9093"   # Controller listener
+      - "9094:9094"   # External listener – accessible from host
+
+    # Kafka KRaft configuration
+    environment:
+      # Enable KRaft mode (no ZooKeeper)
+      - KAFKA_ENABLE_KRAFT=yes
+      # Unique node ID in the cluster
+      - KAFKA_CFG_NODE_ID=1
+      # This node acts as both broker and controller
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      # Listener name used for controller‑to‑controller communication
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+
+      # Listeners and their ports:
+      # - PLAINTEXT: internal broker communication (used by UI and other containers)
+      # - CONTROLLER: controller quorum communication
+      # - EXTERNAL: for clients outside the Docker network (host or remote)
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+
+      # Advertised listeners tell clients where to connect:
+      # - PLAINTEXT uses the container's service name (kafka) for internal access
+      # - EXTERNAL uses localhost for host access (can be changed to host IP if needed)
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+
+      # Map listener names to security protocols (all PLAINTEXT in this setup)
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      # Specify which listener brokers use to communicate with each other
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+
+      # Controller quorum voters – single node cluster (node 1 at localhost:9093)
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@localhost:9093
+
+      # Allow plaintext connections (no SSL) – for development only
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      # Automatically create topics when a producer sends to a non‑existent topic
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+
+    # Health check ensures Kafka is ready before dependent services start
+    healthcheck:
+      test: ["CMD", "kafka-topics.sh", "--bootstrap-server=localhost:9092", "--list"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # Web UI for Kafka management (topics, messages, consumer groups, etc.)
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8085:8080"   # Map host port 8085 to container port 8080
+    networks:
+      - kafka-net
+    environment:
+      # Cluster configuration – single cluster named "kraft-cluster"
+      - KAFKA_CLUSTERS_0_NAME=kraft-cluster
+      # Bootstrap servers use the internal service name (kafka:9092)
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+      # No ZooKeeper (KRaft mode) – leave empty
+      - KAFKA_CLUSTERS_0_ZOOKEEPER=
+    depends_on:
+      kafka:
+        condition: service_healthy   # Wait for Kafka health check to pass
