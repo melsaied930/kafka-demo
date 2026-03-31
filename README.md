@@ -44,15 +44,30 @@ docker exec -it kafka-kraft kafka-topics.sh --bootstrap-server localhost:9092 --
 docker exec -it kafka-kraft kafka-topics.sh --bootstrap-server localhost:9092 --create --topic my-topic --partitions 3 --replication-factor 1
 ```
 
+#### Example Create a Topic
+```bash
+docker exec -it kafka-kraft kafka-topics.sh --bootstrap-server localhost:9092 --create --topic test-topic --partitions 1 --replication-factor 1
+```
+
 #### Produce Messages
 ```bash
 docker exec -it kafka-kraft kafka-console-producer.sh --bootstrap-server localhost:9092 --topic my-topic
+```
+
+#### Example Produce Messages
+```bash
+docker exec -it kafka-kraft kafka-console-producer.sh --bootstrap-server localhost:9092 --topic test-topic
 ```
 Type messages line by line and press **Ctrl+C** to exit.
 
 #### Consume Messages
 ```bash
 docker exec -it kafka-kraft kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic my-topic --from-beginning
+```
+
+#### Example Consume Messages
+```bash
+docker exec -it kafka-kraft kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic test-topic --from-beginning
 ```
 
 ### Access Kafka from Your Host Machine
